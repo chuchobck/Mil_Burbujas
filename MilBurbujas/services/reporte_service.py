@@ -65,6 +65,8 @@ class ReporteService:
             "productos_stock_bajo": len(stock_bajo),
             "cuentas_cobrar_vencidas": len(cuentas_vencidas_cc),
             "cuentas_pagar_vencidas": len(cuentas_vencidas_cp),
+            "detalle_cxc_vencidas": cuentas_vencidas_cc,
+            "detalle_cxp_vencidas": cuentas_vencidas_cp,
 
             # Totales deuda
             "total_por_cobrar": self._cc.get_total_pendiente(),

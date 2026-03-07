@@ -17,15 +17,14 @@ ICONS_DIR = os.path.join(ASSETS_DIR, "icons")
 # ===== BASE DE DATOS =====
 DB_SCHEMA_PATH = os.path.join(DB_DIR, "schema.sql")
 DB_SEED_PATH = os.path.join(DB_DIR, "seed_data.sql")
-# Datos demo desactivados para uso REAL (producción)
-# DB_SEED_OPERACION_PATH = os.path.join(DB_DIR, "seed_operacion.sql")
-DB_SEED_OPERACION_PATH = None
+# Datos de operación para pruebas completas
+# (seed_operacion.sql eliminado — solo datos limpios)
 
 # ===== NEGOCIO =====
 IVA_PORCENTAJE = 15  # IVA Ecuador 15%
 MONTO_MINIMO_COMPROBANTE = 3.00  # RISE: comprobante obligatorio > $3.00
 DIAS_ALERTA_CADUCIDAD_DEFAULT = 180  # 6 meses
-STOCK_MINIMO_DEFAULT = 5
+STOCK_MINIMO_DEFAULT = 4
 
 # ===== ESTADOS =====
 ESTADO_ACTIVO = "ACT"

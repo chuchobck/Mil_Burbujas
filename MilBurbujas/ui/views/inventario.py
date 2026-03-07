@@ -86,11 +86,39 @@ class InventarioView(ctk.CTkFrame):
         # Alertas
         alertas = self._inv.get_alertas()
         lines = []
-        for p in alertas.get("stock_bajo", []):
-            lines.append(f"🔴 {p['nombre']}: {p['stock_actual']} uds (mín: {p['stock_minimo']})")
-        for p in alertas.get("proximos_caducar", []):
-            lines.append(f"🟡 {p['nombre']}: caduca {p.get('fecha_caducidad', 'pronto')}")
-        self.lbl_alertas.configure(text="\n".join(lines) if lines else "✅ Sin alertas de inventario")
+        sb = alertas.get("stock_bajo", [])
+        if sb:
+            lines.append(f"{'─' * 50}")
+            lines.append(f"🔴  STOCK BAJO  ({len(sb)} productos)")
+            lines.append(f"{'─' * 50}")
+            for p in sb:
+                codigo = p.get('codigo_barras', '')
+                marca = p.get('marca_nombre', '')
+                cat = p.get('categoria_nombre', '')
+                info = f"[{codigo}]" if codigo else ''
+                extra = ' · '.join(x for x in [marca, cat] if x)
+                lines.append(f"  • {p['nombre']} {info}")
+                if extra:
+                    lines.append(f"    {extra}")
+                lines.append(f"    Stock: {p['stock_actual']} uds  |  Mín: {p['stock_minimo']}  |  Máx: {p.get('stock_maximo', '?')}")
+                lines.append("")
+
+        pc = alertas.get("proximos_caducar", [])
+        if pc:
+            lines.append(f"{'─' * 50}")
+            lines.append(f"🟡  PRÓXIMOS A CADUCAR  ({len(pc)} productos)")
+            lines.append(f"{'─' * 50}")
+            for p in pc:
+                codigo = p.get('codigo_barras', '')
+                info = f"[{codigo}]" if codigo else ''
+                lines.append(f"  • {p['nombre']} {info}")
+                lines.append(f"    Caduca: {p.get('fecha_caducidad', '?')}  |  Stock: {p.get('stock_actual', '?')} uds")
+                lines.append("")
+
+        if not sb and not pc:
+            lines.append("✅ Sin alertas de inventario")
+
+        self.lbl_alertas.configure(text="\n".join(lines))
 
         # KPIs
         for w in self.alert_frame.winfo_children():
