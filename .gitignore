@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database (archivo local generado automáticamente)
+*.db
+!MilBurbujas/database/schema.sql
+!MilBurbujas/database/seed_data.sql
+
+# Backups locales
+MilBurbujas/backups/*.db
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Word docs (opcionales, no son código)
+*.docx
