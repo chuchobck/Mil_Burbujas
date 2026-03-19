@@ -138,7 +138,7 @@ class ClientesView(ctk.CTkFrame):
                     "telefono": ff["telefono"].get(),
                     "direccion": ff["direccion"].get(),
                     "habilitado_credito": 0,
-                    "limite_credito": 0,
+                    "limite_credito": 400,
                     "saldo_pendiente": 0,
                     "frecuencia_pago": "MENSUAL",
                 }
@@ -255,7 +255,7 @@ class ClientesView(ctk.CTkFrame):
                     "telefono": ff["telefono"].get(),
                     "direccion": ff["direccion"].get(),
                     "habilitado_credito": 1 if ff["habilitado_credito"].get() == "Sí" else 0,
-                    "limite_credito": float(ff["limite_credito"].get() or 0),
+                    "limite_credito": float(ff["limite_credito"].get() or 400),
                     "frecuencia_pago": ff["frecuencia_pago"].get() or "MENSUAL",
                     "saldo_pendiente": saldo,
                 }

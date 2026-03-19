@@ -160,7 +160,7 @@ class CompraService:
                                 {"fecha_caducidad": fecha_lote}
                             )
 
-                    # Actualizar precio del proveedor-producto si existe
+                    # Actualizar o crear relación proveedor-producto
                     pp = self._pp.get_by_proveedor_producto(
                         cabecera["proveedor_id"], item["producto_id"]
                     )
@@ -168,7 +168,36 @@ class CompraService:
                         self._pp.update_in_transaction(pp["proveedor_producto_id"], {
                             "precio_compra": item["_precio_sin_iva"],
                             "precio_compra_con_iva": item["precio_unitario"],
+                            "fecha_ultimo_precio": compra_data["fecha_compra"],
                         })
+                    else:
+                        # Crear la relación automáticamente al comprar por primera vez
+                        self._pp.insert_in_transaction({
+                            "proveedor_id": cabecera["proveedor_id"],
+                            "producto_id": item["producto_id"],
+                            "precio_compra": item["_precio_sin_iva"],
+                            "precio_compra_con_iva": item["precio_unitario"],
+                            "incluye_iva": item.get("incluye_iva", 1),
+                            "es_proveedor_principal": 0,
+                            "fecha_ultimo_precio": compra_data["fecha_compra"],
+                        })
+
+                    # Sincronizar precio de compra en el producto (costo de referencia)
+                    # Usa precio SIN IVA como costo real y recalcula precio_venta_minimo
+                    costo_ref = item["_precio_sin_iva"]
+                    try:
+                        margen_cfg = self._config.get_valor("MARGEN_GANANCIA_DEFAULT")
+                        margen = float(margen_cfg) if margen_cfg else 23.0
+                    except Exception:
+                        margen = 23.0
+                    pvm = round(costo_ref * (1 + margen / 100), 2) if costo_ref > 0 else 0.0
+                    self._producto.update_in_transaction(
+                        item["producto_id"],
+                        {
+                            "precio_referencia_compra": round(costo_ref, 2),
+                            "precio_venta_minimo": pvm,
+                        }
+                    )
 
                 # 3. Cuenta por pagar (si crédito)
                 if cabecera.get("tipo_pago") == "CREDITO":

@@ -1,13 +1,13 @@
 -- ============================================
 -- Mil Burbujas - DATOS INICIALES (SEED)
 -- Se ejecuta DESPUÉS de schema.sql
--- Actualizado: 2026-03-13 — Catálogo definitivo
+-- Base limpia: solo usuarios, config, unidades y categorías
 -- ============================================
 
 -- ===== USUARIOS =====
 -- Admin: admin@milburbujas.local / admin123
 INSERT OR IGNORE INTO usuario (nombre_completo, email, contrasena_hash, rol, estado)
-VALUES ('Propietaria', 'admin@milburbujas.local', '$2b$12$LJ3m5z5Y5Q5Z5Y5Q5Z5Y5uDefaultHashParaCambiar', 'ADMIN', 'ACT');
+VALUES ('Propietaria', 'admin@milburbujas.local', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'ADMIN', 'ACT');
 
 -- Cajero: cajero@milburbujas.local / cajero123
 INSERT OR IGNORE INTO usuario (nombre_completo, email, contrasena_hash, rol, estado)
@@ -18,7 +18,7 @@ INSERT OR IGNORE INTO configuracion (clave, valor, descripcion, tipo_dato) VALUE
 ('IVA_PORCENTAJE',           '15',          'Porcentaje de IVA Ecuador',                    'NUMERIC'),
 ('MONTO_MIN_COMPROBANTE',    '3.00',        'Monto mínimo para emitir comprobante RISE',    'NUMERIC'),
 ('DIAS_ALERTA_CADUCIDAD',    '180',         'Días antes de caducidad para alertar',         'NUMERIC'),
-('STOCK_MINIMO_DEFAULT',     '5',           'Stock mínimo por defecto para alertas',        'NUMERIC'),
+('STOCK_MINIMO_DEFAULT',     '4',           'Stock mínimo por defecto para alertas',        'NUMERIC'),
 ('NOMBRE_NEGOCIO',           'MilBurbujas', 'Nombre comercial de la tienda',                'STRING'),
 ('RUC_NEGOCIO',              '',            'RUC del negocio para comprobantes',             'STRING'),
 ('DIRECCION_NEGOCIO',        '',            'Dirección del negocio',                         'STRING'),

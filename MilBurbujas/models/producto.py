@@ -74,8 +74,8 @@ class ProductoModel(BaseModel):
         """Calcula el valor total del inventario activo."""
         sql = """SELECT COUNT(*) as total_productos,
                         SUM(stock_actual) as total_unidades,
-                        SUM(stock_actual * precio_referencia_compra) as valor_costo,
-                        SUM(stock_actual * precio_venta) as valor_venta
+                        SUM(stock_actual * COALESCE(precio_referencia_compra, 0)) as valor_costo,
+                        SUM(stock_actual * COALESCE(precio_venta, 0)) as valor_venta
                  FROM producto
                  WHERE estado = 'ACT' AND stock_actual > 0"""
         return self.custom_query_one(sql)

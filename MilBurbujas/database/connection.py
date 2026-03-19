@@ -142,13 +142,6 @@ class DatabaseConnection:
         else:
             print("[INFO] No se encontró seed_data.sql, se omite.")
 
-        # Cargar datos de operación (3 meses realistas)
-        if DB_SEED_OPERACION_PATH and os.path.exists(DB_SEED_OPERACION_PATH):
-            with open(DB_SEED_OPERACION_PATH, "r", encoding="utf-8") as f:
-                sql = "PRAGMA foreign_keys = OFF;\n" + f.read()
-                conn.executescript(sql)
-            print("[OK] Datos de operación (3 meses) cargados.")
-
         # Reactivar FKs
         conn.execute("PRAGMA foreign_keys = ON")
 

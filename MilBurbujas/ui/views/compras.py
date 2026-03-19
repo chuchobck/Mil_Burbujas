@@ -393,7 +393,30 @@ class ComprasView(ctk.CTkFrame):
         ff_plazo.pack(side="left", padx=(0, 16))
         ff_fecha = FormField(fr_pago, "Fecha Compra", placeholder=hoy(), width=220)
         ff_fecha.set(hoy())
-        ff_fecha.pack(side="left")
+        ff_fecha.pack(side="left", padx=(0, 16))
+
+        # IVA a nivel de factura
+        fr_iva_header = ctk.CTkFrame(fr_pago, fg_color="transparent")
+        fr_iva_header.pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(fr_iva_header, text="Factura:",
+                     font=FONTS.get("form_hint", FONTS["small"]),
+                     text_color=COLORS["text_sec"]).pack(anchor="w")
+        ff_iva_factura = ctk.CTkComboBox(fr_iva_header, values=["Con IVA", "Sin IVA"],
+                                          width=120, height=36, font=FONTS["body"],
+                                          corner_radius=10, border_color=COLORS["border"],
+                                          state="readonly")
+        ff_iva_factura.set("Con IVA")
+        ff_iva_factura.pack()
+
+        def _on_iva_factura_change(*_):
+            """Al cambiar IVA de la factura, actualizar todos los items existentes."""
+            nuevo_iva = 1 if ff_iva_factura.get() == "Con IVA" else 0
+            for it in self._items_compra:
+                it["incluye_iva"] = nuevo_iva
+            if self._items_compra:
+                _refresh()
+
+        ff_iva_factura.configure(command=_on_iva_factura_change)
 
         # ============================
         # PASO 2: PRODUCTOS
@@ -430,19 +453,6 @@ class ComprasView(ctk.CTkFrame):
                               width=100, height=42, font=FONTS["body"],
                               corner_radius=10, border_color=COLORS["border"])
         ff_pu.pack(side="left", padx=(0, 10))
-
-        # IVA combo con label descriptivo
-        fr_iva_wrap = ctk.CTkFrame(fr_add, fg_color="transparent")
-        fr_iva_wrap.pack(side="left", padx=(0, 10))
-        ctk.CTkLabel(fr_iva_wrap, text="¿Incluye IVA?",
-                     font=FONTS.get("form_hint", FONTS["tiny"]),
-                     text_color=COLORS["text_sec"]).pack(anchor="w")
-        ff_iva = ctk.CTkComboBox(fr_iva_wrap, values=["No", "Si"],
-                                  width=90, height=36, font=FONTS["body"],
-                                  corner_radius=10, border_color=COLORS["border"],
-                                  state="readonly")
-        ff_iva.set("No")
-        ff_iva.pack()
 
         ff_caducidad = ctk.CTkEntry(fr_add,
                                      placeholder_text="Caducidad (AAAA-MM-DD)",
@@ -489,18 +499,34 @@ class ComprasView(ctk.CTkFrame):
                 show_toast(dlg, "Cantidad debe ser mayor a 0", "warning")
                 return
 
-            # Auto-detectar IVA del producto si el usuario no lo cambio
-            aplica_iva = found.get("aplica_iva_compra", 1)
-            ff_iva.set("Si" if aplica_iva else "No")
+            # Auto-detectar IVA del proveedor si tiene relación
+            aplica_iva = 1 if ff_iva_factura.get() == "Con IVA" else 0
 
-            # Auto-fill precio si esta vacio
+            # Auto-fill precio: primero buscar precio del proveedor seleccionado
             pu_text = ff_pu.get().strip()
             if not pu_text:
-                ref_price = found.get("precio_referencia_compra", 0) or 0
-                if ref_price > 0:
-                    pu_text = str(ref_price)
+                prov_id_sel = prov_opts.get(ff_prov.get())
+                precio_prov = None
+                if prov_id_sel:
+                    pp = self._prov_svc.get_productos_de_proveedor(prov_id_sel)
+                    for rel in pp:
+                        if rel["producto_id"] == found["producto_id"]:
+                            precio_prov = rel.get("precio_compra_con_iva") or rel.get("precio_compra", 0)
+                            break
+
+                if precio_prov and precio_prov > 0:
+                    pu_text = str(round(precio_prov, 2))
                     ff_pu.delete(0, "end")
                     ff_pu.insert(0, pu_text)
+                    lbl_prod_found.configure(
+                        text="Precio del proveedor: ${:.2f}".format(precio_prov),
+                        text_color=COLORS["info"])
+                else:
+                    ref_price = found.get("precio_referencia_compra", 0) or 0
+                    if ref_price > 0:
+                        pu_text = str(ref_price)
+                        ff_pu.delete(0, "end")
+                        ff_pu.insert(0, pu_text)
 
             try:
                 pu = float(pu_text or 0)
@@ -512,7 +538,7 @@ class ComprasView(ctk.CTkFrame):
                 show_toast(dlg, "Ingresa un precio unitario mayor a 0", "warning")
                 return
 
-            iva_val = 1 if ff_iva.get() == "Si" else 0
+            iva_val = aplica_iva
             caducidad_val = ff_caducidad.get().strip() or None
 
             # Si el producto ya esta en la lista, actualizar cantidad/precio/iva
@@ -561,8 +587,8 @@ class ComprasView(ctk.CTkFrame):
 
         items_header = ctk.CTkFrame(fr_items_container, fg_color="transparent")
         items_header.pack(fill="x")
-        hdr_cols = [("#", 30), ("Producto", 200), ("Caduca", 90), ("Cant", 50), ("P.U.", 80),
-                    ("IVA", 45), ("Subtotal", 80), ("IVA $", 65), ("Total", 85), ("", 45)]
+        hdr_cols = [("#", 30), ("Producto", 190), ("Caduca", 90), ("Cant", 50), ("P.U.", 80),
+                    ("IVA", 45), ("Subtotal", 80), ("IVA $", 65), ("Total", 85), ("", 80)]
         for txt, w in hdr_cols:
             ctk.CTkLabel(items_header, text="  {}".format(txt), font=FONTS["heading"],
                          width=w, text_color=COLORS["text_light"],
@@ -623,7 +649,7 @@ class ComprasView(ctk.CTkFrame):
                 caduc_txt = it.get("fecha_caducidad_lote") or "-"
                 vals = [
                     (str(i + 1), 30),
-                    (it["nombre"][:24], 200),
+                    (it["nombre"][:22], 190),
                     (caduc_txt[:10], 90),
                     (str(qty), 50),
                     ("${:.2f}".format(pu), 80),
@@ -637,6 +663,43 @@ class ComprasView(ctk.CTkFrame):
                                  width=w, fg_color="transparent", corner_radius=0,
                                  anchor="w", height=34, padx=4
                                  ).pack(side="left", fill="y")
+
+                # Boton editar
+                def _edit(idx=i):
+                    item = self._items_compra[idx]
+                    edit_dlg = Dialog(dlg, "Editar: {}".format(item["nombre"][:30]), width=420, height=320)
+                    ctk.CTkLabel(edit_dlg.body, text=item["nombre"],
+                                 font=FONTS["heading"], text_color=COLORS["primary"]
+                                 ).pack(anchor="w", pady=(8, 12))
+                    e_qty = FormField(edit_dlg.body, "Cantidad", placeholder="1", width=360)
+                    e_qty.set(str(item["cantidad"]))
+                    e_qty.pack(pady=4)
+                    e_pu = FormField(edit_dlg.body, "Precio Unitario ($)", placeholder="0.00", width=360)
+                    e_pu.set(str(item["precio_unitario"]))
+                    e_pu.pack(pady=4)
+                    def _apply_edit():
+                        try:
+                            new_qty = int(e_qty.get())
+                            new_pu = float(e_pu.get())
+                            if new_qty <= 0 or new_pu <= 0:
+                                show_toast(edit_dlg, "Valores deben ser mayores a 0", "warning")
+                                return
+                            self._items_compra[idx]["cantidad"] = new_qty
+                            self._items_compra[idx]["precio_unitario"] = new_pu
+                            edit_dlg.destroy()
+                            _refresh()
+                        except ValueError:
+                            show_toast(edit_dlg, "Valores invalidos", "error")
+                    ActionButton(edit_dlg.footer, "Aplicar", "success",
+                                 command=_apply_edit, width=120).pack(side="right", padx=6)
+                    ActionButton(edit_dlg.footer, "Cancelar", "ghost",
+                                 command=edit_dlg.destroy, width=100).pack(side="right", padx=6)
+
+                ctk.CTkButton(row_fr, text="E", width=34, height=28,
+                              fg_color=COLORS["info"], hover_color="#1565C0",
+                              text_color=COLORS["text_light"], corner_radius=4,
+                              font=FONTS["small"], command=_edit
+                              ).pack(side="left", padx=(4, 0))
 
                 # Boton eliminar
                 def _del(idx=i):

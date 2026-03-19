@@ -20,7 +20,7 @@ class CuentaPagarModel(BaseModel):
     def get_pendientes_por_proveedor(self, proveedor_id: int) -> list[dict]:
         sql = """SELECT * FROM cuenta_pagar
                  WHERE proveedor_id = ? AND estado = 'ACT'
-                   AND estado_pago IN ('PENDIENTE', 'PARCIAL')
+                   AND estado_pago IN ('PENDIENTE', 'PARCIAL', 'VENCIDO')
                  ORDER BY fecha_vencimiento"""
         return self.custom_query(sql, (proveedor_id,))
 
@@ -29,7 +29,7 @@ class CuentaPagarModel(BaseModel):
                  FROM cuenta_pagar cp
                  JOIN proveedor p ON cp.proveedor_id = p.proveedor_id
                  WHERE cp.estado = 'ACT'
-                   AND cp.estado_pago IN ('PENDIENTE', 'PARCIAL')
+                   AND cp.estado_pago IN ('PENDIENTE', 'PARCIAL', 'VENCIDO')
                    AND date(cp.fecha_vencimiento) < date('now', 'localtime')
                  ORDER BY cp.fecha_vencimiento"""
         return self.custom_query(sql)
@@ -40,6 +40,6 @@ class CuentaPagarModel(BaseModel):
     def get_total_pendiente(self) -> float:
         sql = """SELECT COALESCE(SUM(saldo_pendiente), 0) as total
                  FROM cuenta_pagar
-                 WHERE estado = 'ACT' AND estado_pago IN ('PENDIENTE', 'PARCIAL')"""
+                 WHERE estado = 'ACT' AND estado_pago IN ('PENDIENTE', 'PARCIAL', 'VENCIDO')"""
         result = self.custom_query_one(sql)
         return result["total"] if result else 0.0

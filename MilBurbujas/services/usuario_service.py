@@ -30,13 +30,6 @@ class UsuarioService:
         if usuario["contrasena_hash"] == hash_input:
             return dict(usuario)
 
-        # Compatibilidad con el seed (hash dummy del admin)
-        # Si es la primera vez, aceptar admin123 y rehashear
-        if email == "admin@milburbujas.local" and contrasena == "admin123":
-            nuevo_hash = hashlib.sha256("admin123".encode()).hexdigest()
-            self._model.update(usuario["usuario_id"], {"contrasena_hash": nuevo_hash})
-            return dict(usuario)
-
         return None
 
     # ── CRUD ──

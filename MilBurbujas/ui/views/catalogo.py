@@ -182,7 +182,7 @@ class CatalogoView(ctk.CTkFrame):
                      ).pack(anchor="w", pady=(12, 4))
 
         for key, label, ph in [("stock_actual", "Stock Actual", "0"),
-                                ("stock_minimo", "Stock Minimo", "5"),
+                                ("stock_minimo", "Stock Minimo", "4"),
                                 ("stock_maximo", "Stock Maximo", "500")]:
             ff[key] = FormField(dlg.body, label, placeholder=ph, width=800)
             ff[key].pack(pady=3)
@@ -216,7 +216,7 @@ class CatalogoView(ctk.CTkFrame):
             ff["precio_venta"].set(data.get("precio_venta", 0))
             # precio_venta_minimo se recalcula automaticamente via trace
             ff["stock_actual"].set(data.get("stock_actual", 0))
-            ff["stock_minimo"].set(data.get("stock_minimo", 5))
+            ff["stock_minimo"].set(data.get("stock_minimo", 4))
             ff["stock_maximo"].set(data.get("stock_maximo", 500))
 
         def _save():
@@ -234,7 +234,7 @@ class CatalogoView(ctk.CTkFrame):
                     "precio_venta": float(ff["precio_venta"].get() or 0),
                     "precio_referencia_compra": float(ff["precio_referencia_compra"].get() or 0),
                     "stock_actual": int(ff["stock_actual"].get() or 0),
-                    "stock_minimo": int(ff["stock_minimo"].get() or 5),
+                    "stock_minimo": int(ff["stock_minimo"].get() or 4),
                     "stock_maximo": int(ff["stock_maximo"].get() or 500),
                     "aplica_iva_compra": 1,
                 }

@@ -39,9 +39,11 @@ class CierreCajaView(ctk.CTkFrame):
         self.kpi_gastos.grid(row=0, column=3, padx=6, pady=6, sticky="nsew")
         self.kpi_cobros = KPIBox(self.kpi_frame, "Cobros Fiados", "$0.00", "#6C63FF")
         self.kpi_cobros.grid(row=0, column=4, padx=6, pady=6, sticky="nsew")
+        self.kpi_pagos_prov = KPIBox(self.kpi_frame, "Pagos Proveedores", "$0.00", "#E91E63")
+        self.kpi_pagos_prov.grid(row=0, column=5, padx=6, pady=6, sticky="nsew")
         self.kpi_esperado = KPIBox(self.kpi_frame, "Esperado Caja", "$0.00", COLORS["primary"])
-        self.kpi_esperado.grid(row=0, column=5, padx=6, pady=6, sticky="nsew")
-        for c in range(6):
+        self.kpi_esperado.grid(row=0, column=6, padx=6, pady=6, sticky="nsew")
+        for c in range(7):
             self.kpi_frame.columnconfigure(c, weight=1)
 
         # -- Historial de cierres --
@@ -77,6 +79,7 @@ class CierreCajaView(ctk.CTkFrame):
             self.kpi_compras.set_value("${:.2f}".format(p.get("total_compras", 0)))
             self.kpi_gastos.set_value("${:.2f}".format(p.get("total_gastos", 0)))
             self.kpi_cobros.set_value("${:.2f}".format(p.get("cobros_efectivo", 0)))
+            self.kpi_pagos_prov.set_value("${:.2f}".format(p.get("pagos_proveedores_efectivo", 0)))
             self.kpi_esperado.set_value("${:.2f}".format(p.get("efectivo_esperado", 0)))
             self._dlg_cerrar(p)
         except Exception as e:
@@ -95,6 +98,7 @@ class CierreCajaView(ctk.CTkFrame):
             ("Ventas Credito:", "${:.2f}".format(p.get("total_ventas_credito", 0))),
             ("Cobros de Fiados:", "${:.2f}".format(p.get("cobros_efectivo", 0))),
             ("Compras Contado:", "${:.2f}".format(p.get("total_compras", 0))),
+            ("Pagos a Proveedores:", "${:.2f}".format(p.get("pagos_proveedores_efectivo", 0))),
             ("Gastos:", "${:.2f}".format(p.get("total_gastos", 0))),
         ]
         for label, valor in lines:

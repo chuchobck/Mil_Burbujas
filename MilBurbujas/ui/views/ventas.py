@@ -397,7 +397,6 @@ class VentasView(ctk.CTkFrame):
 
         ActionButton(fr_cli_row, "Buscar", "primary", command=_buscar_cliente,
                      width=70, height=36).pack(side="left", padx=(0, 10))
-        ff_buscar_cli.bind("<Return>", lambda e: _buscar_cliente())
 
         # ==============================================================
         # FILA 2: PASO 2 (izq) + PASO 3 (der) - HORIZONTAL
@@ -462,8 +461,13 @@ class VentasView(ctk.CTkFrame):
                 show_toast(dlg, "Cantidad > 0", "warning")
                 return
             ya = sum(it["cantidad"] for it in self._items if it["producto_id"] == found["producto_id"])
-            if ya + qty > found["stock_actual"]:
-                show_toast(dlg, "Stock: {} (ya tienes {})".format(found["stock_actual"], ya), "warning")
+            disponible = found["stock_actual"] - ya
+            if qty > disponible:
+                show_toast(dlg, "Solo quedan {} unidades disponibles de '{}'".format(disponible, found["nombre"][:30]), "warning")
+                ff_qty.delete(0, "end")
+                ff_qty.insert(0, str(max(disponible, 1)))
+                ff_qty.focus()
+                ff_qty.select_range(0, "end")
                 return
             merged = False
             for it in self._items:
@@ -486,9 +490,51 @@ class VentasView(ctk.CTkFrame):
             ff_codigo.focus()
             _refresh_items()
 
-        ActionButton(fr_prod_top, "Agregar", "success", command=_buscar_y_agregar,
-                     width=100, height=36).pack(side="left", padx=(0, 4))
-        ff_codigo.bind("<Return>", lambda e: _buscar_y_agregar())
+        btn_agregar = ActionButton(fr_prod_top, "Agregar", "success", command=_buscar_y_agregar,
+                     width=100, height=36)
+        btn_agregar.pack(side="left", padx=(0, 4))
+
+        # ── Flujo de teclado: Cliente → Codigo → Cantidad → Agregar → Codigo ──
+        def _cli_to_codigo(e):
+            _buscar_cliente()
+            ff_codigo.focus()
+            return "break"
+
+        def _codigo_to_qty(e):
+            """Enter en codigo: buscar producto y saltar a cantidad."""
+            q = ff_codigo.get().strip().lower()
+            if not q:
+                return
+            found_prev = None
+            for p in self._all_prods.values():
+                cb = (p.get("codigo_barras") or "").lower()
+                if cb and cb == q:
+                    found_prev = p
+                    break
+            if not found_prev:
+                for p in self._all_prods.values():
+                    if q in p["nombre"].lower():
+                        found_prev = p
+                        break
+            if found_prev:
+                lbl_prod_found.configure(
+                    text="{} (${:.2f})".format(found_prev["nombre"][:30], found_prev["precio_venta"]),
+                    text_color=COLORS["success"])
+                ff_qty.focus()
+                ff_qty.select_range(0, "end")
+            else:
+                lbl_prod_found.configure(text="No encontrado", text_color=COLORS["danger"])
+            return "break"
+
+        def _qty_agregar(e):
+            """Enter en cantidad: agregar producto y volver a codigo."""
+            _buscar_y_agregar()
+            return "break"
+
+        ff_buscar_cli.bind("<Return>", _cli_to_codigo)
+        ff_codigo.bind("<Return>", _codigo_to_qty)
+        ff_qty.bind("<Return>", _qty_agregar)
+        ff_codigo.bind("<Tab>", lambda e: (ff_qty.focus(), ff_qty.select_range(0, "end")) or "break")
 
         # Tabla de items
         fr_tbl = ctk.CTkFrame(fr_left, fg_color="transparent")

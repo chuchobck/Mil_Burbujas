@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS producto (
     precio_venta           REAL    NOT NULL CHECK (precio_venta >= 0),
     precio_venta_minimo    REAL    DEFAULT 0.00,
     stock_actual           INTEGER NOT NULL DEFAULT 0 CHECK (stock_actual >= 0),
-    stock_minimo           INTEGER NOT NULL DEFAULT 5,
+    stock_minimo           INTEGER NOT NULL DEFAULT 4,
     stock_maximo           INTEGER,
     fecha_caducidad        TEXT,
     dias_alerta_caducidad  INTEGER DEFAULT 180,

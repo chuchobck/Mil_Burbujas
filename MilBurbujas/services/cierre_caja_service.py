@@ -12,6 +12,7 @@ from models.venta import VentaModel
 from models.compra import CompraModel
 from models.gasto_operativo import GastoOperativoModel
 from models.pago_cliente import PagoClienteModel
+from models.pago_proveedor import PagoProveedorModel
 from services.auditoria_service import AuditoriaService
 
 
@@ -25,6 +26,7 @@ class CierreCajaService:
         self._compra = CompraModel()
         self._gasto = GastoOperativoModel()
         self._pago_cli = PagoClienteModel()
+        self._pago_prov = PagoProveedorModel()
         self._audit = AuditoriaService()
 
     # ============================
@@ -48,12 +50,16 @@ class CierreCajaService:
         # Cobros de fiados del dia (pagos de clientes)
         cobros = self._get_cobros_dia(fecha)
 
-        # Efectivo esperado = ventas_efect + cobros_efect - compras_contado - gastos
+        # Pagos a proveedores del dia (efectivo que sale de caja)
+        pagos_prov = self._pago_prov.get_totales_dia(fecha)
+
+        # Efectivo esperado = ventas_efect + cobros_efect - compras_contado - gastos - pagos_prov_efect
         efectivo_esperado = round(
             (totales_venta.get("total_efectivo") or 0)
             + cobros["cobros_efectivo"]
             - total_compras
-            - total_gastos,
+            - total_gastos
+            - pagos_prov["pagos_efectivo"],
             2
         )
 
@@ -70,6 +76,9 @@ class CierreCajaService:
             "cobros_efectivo": cobros["cobros_efectivo"],
             "cobros_transferencia": cobros["cobros_transferencia"],
             "cobros_total": cobros["cobros_total"],
+            "pagos_proveedores_efectivo": pagos_prov["pagos_efectivo"],
+            "pagos_proveedores_transferencia": pagos_prov["pagos_transferencia"],
+            "pagos_proveedores_total": pagos_prov["pagos_total"],
             "efectivo_esperado": efectivo_esperado,
         }
 

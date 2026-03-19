@@ -196,10 +196,7 @@ class CatalogoService:
         pvm = datos["precio_venta_minimo"]
         if pv < 0:
             raise ValueError("El precio de venta no puede ser negativo.")
-        if pv > 0 and pvm > pv:
-            raise ValueError(
-                "El precio de venta (${:.2f}) no puede ser menor al minimo (${:.2f}).\n"
-                "Sube el precio de venta o reduce el costo de compra.".format(pv, pvm))
+        # Precio minimo es solo referencia, no bloquea
         pid = self._producto.insert(datos)
         self._audit.registrar(usuario_id, "producto", "INSERT", pid, datos_nuevos=datos)
         return self._producto.get_by_id(pid)
@@ -212,12 +209,7 @@ class CatalogoService:
         costo = float(datos.get("precio_referencia_compra",
                                 anterior.get("precio_referencia_compra", 0)) or 0)
         datos["precio_venta_minimo"] = self.calcular_precio_minimo(costo)
-        pv = datos.get("precio_venta", anterior["precio_venta"])
-        pvm = datos["precio_venta_minimo"]
-        if pv > 0 and pvm > pv:
-            raise ValueError(
-                "El precio de venta (${:.2f}) no puede ser menor al minimo (${:.2f}).\n"
-                "Sube el precio de venta o reduce el costo de compra.".format(pv, pvm))
+        # Precio minimo es solo referencia, no bloquea
         self._producto.update(producto_id, datos)
         self._audit.registrar(usuario_id, "producto", "UPDATE", producto_id,
                               datos_anteriores=dict(anterior), datos_nuevos=datos)

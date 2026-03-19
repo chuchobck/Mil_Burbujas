@@ -177,7 +177,13 @@ class InventarioService:
     # ══════════════════════════════════════
 
     def get_alertas(self) -> dict:
-        """Retorna un resumen de alertas del inventario."""
+        """Retorna un resumen de alertas del inventario.
+
+        Incluye productos con stock bajo (≤ mínimo),
+        productos próximos a caducar y un flag de hay_alertas.
+        Cada producto incluye: nombre, codigo_barras, marca_nombre,
+        categoria_nombre, stock_actual, stock_minimo, stock_maximo.
+        """
         stock_bajo = self.get_stock_bajo()
         prox_caducar = self.get_proximos_caducar()
         return {

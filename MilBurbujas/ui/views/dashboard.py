@@ -15,7 +15,17 @@ class DashboardView(ctk.CTkFrame):
         self.user = user
         self._rep = ReporteService()
         self._inv = InventarioService()
+        self._app = self._find_app()
         self._build()
+
+    def _find_app(self):
+        """Busca la ventana raíz (MilBurbujasApp) para poder navegar."""
+        w = self.master
+        while w:
+            if hasattr(w, '_navigate'):
+                return w
+            w = getattr(w, 'master', None)
+        return None
 
     def _build(self):
         # Título
@@ -37,15 +47,13 @@ class DashboardView(ctk.CTkFrame):
         bottom.grid_columnconfigure(0, weight=1)
         bottom.grid_columnconfigure(1, weight=1)
 
-        # Alertas
+        # ── Panel de Alertas (scrollable) ──
         alert_card = CardFrame(bottom)
         alert_card.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=4)
         ctk.CTkLabel(alert_card, text="⚠️  Alertas", font=FONTS["subtitle"],
                      text_color=COLORS["warning"]).pack(anchor="w", padx=PADDING, pady=(PADDING, 4))
-        self.alert_list = ctk.CTkLabel(alert_card, text="Cargando...",
-                                        font=FONTS["body"], text_color=COLORS["text_sec"],
-                                        anchor="nw", justify="left", wraplength=400)
-        self.alert_list.pack(fill="both", expand=True, padx=PADDING, pady=(0, PADDING))
+        self.alert_scroll = ctk.CTkScrollableFrame(alert_card, fg_color="transparent")
+        self.alert_scroll.pack(fill="both", expand=True, padx=4, pady=(0, PADDING))
 
         # Top productos
         top_card = CardFrame(bottom)
@@ -58,6 +66,30 @@ class DashboardView(ctk.CTkFrame):
         self.top_list.pack(fill="both", expand=True, padx=PADDING, pady=(0, PADDING))
 
         self.refresh()
+
+    # ─── Helpers para crear filas de alerta ───
+
+    def _add_alert_header(self, icon, text, color, nav_key=None):
+        """Agrega un encabezado de sección de alerta."""
+        row = ctk.CTkFrame(self.alert_scroll, fg_color="transparent")
+        row.pack(fill="x", pady=(8, 2))
+        lbl = ctk.CTkLabel(row, text=f"{icon} {text}",
+                            font=("Segoe UI", 13, "bold"),
+                            text_color=color, anchor="w")
+        lbl.pack(side="left", fill="x", expand=True)
+
+    def _add_alert_item(self, text, color="#666666"):
+        """Agrega una línea de detalle de alerta."""
+        lbl = ctk.CTkLabel(self.alert_scroll, text=f"   • {text}",
+                            font=("Segoe UI", 12), text_color=color,
+                            anchor="w", justify="left")
+        lbl.pack(fill="x", padx=8, pady=1)
+
+    def _add_separator(self):
+        """Línea separadora entre secciones."""
+        sep = ctk.CTkFrame(self.alert_scroll, height=1,
+                            fg_color=COLORS.get("border", "#E0E0E0"))
+        sep.pack(fill="x", padx=8, pady=4)
 
     def refresh(self):
         try:
@@ -81,22 +113,74 @@ class DashboardView(ctk.CTkFrame):
             box = KPIBox(self.kpi_frame, titulo, valor, color, icono)
             box.pack(side="left", fill="x", expand=True, padx=4)
 
-        # Alertas
+        # ── Limpiar alertas ──
+        for w in self.alert_scroll.winfo_children():
+            w.destroy()
+
+        has_alerts = False
         alertas = self._inv.get_alertas()
-        lines = []
-        if alertas.get("total_stock_bajo", 0) > 0:
-            lines.append(f"🔴 {alertas['total_stock_bajo']} producto(s) con stock bajo")
-            for p in alertas.get("stock_bajo", [])[:5]:
-                lines.append(f"   • {p['nombre']}: {p['stock_actual']}/{p['stock_minimo']}")
-        if alertas.get("total_proximos_caducar", 0) > 0:
-            lines.append(f"🟡 {alertas['total_proximos_caducar']} producto(s) próximos a caducar")
-        cxc_v = d.get("cuentas_cobrar_vencidas", 0)
-        if cxc_v > 0:
-            lines.append(f"🟠 {cxc_v} cuenta(s) por cobrar vencidas")
-        cxp_v = d.get("cuentas_pagar_vencidas", 0)
-        if cxp_v > 0:
-            lines.append(f"🔴 {cxp_v} cuenta(s) por pagar vencidas")
-        self.alert_list.configure(text="\n".join(lines) if lines else "✅ Sin alertas pendientes")
+
+        # 1. Stock bajo — TODOS los productos
+        stock_bajo = alertas.get("stock_bajo", [])
+        if stock_bajo:
+            has_alerts = True
+            self._add_alert_header(
+                "🔴", f"STOCK BAJO — {len(stock_bajo)} producto(s)",
+                COLORS.get("danger", "#E53935"), nav_key="inventario")
+            for p in stock_bajo:
+                marca = p.get('marca_nombre') or ''
+                marca_txt = f" ({marca})" if marca else ''
+                self._add_alert_item(
+                    f"{p['nombre']}{marca_txt}: {p['stock_actual']}/{p['stock_minimo']} uds",
+                    COLORS.get("danger", "#E53935"))
+            self._add_separator()
+
+        # 2. Próximos a caducar — TODOS
+        prox_cad = alertas.get("proximos_caducar", [])
+        if prox_cad:
+            has_alerts = True
+            self._add_alert_header(
+                "🟡", f"PRÓXIMOS A CADUCAR — {len(prox_cad)} producto(s)",
+                COLORS.get("warning", "#FF9800"), nav_key="inventario")
+            for p in prox_cad:
+                self._add_alert_item(
+                    f"{p['nombre']}: caduca {p.get('fecha_caducidad', '?')}",
+                    COLORS.get("warning", "#FF9800"))
+            self._add_separator()
+
+        # 3. CxC vencidas — TODAS con cliente y monto
+        cxc_lista = d.get("detalle_cxc_vencidas", [])
+        if cxc_lista:
+            has_alerts = True
+            total_cxc = sum(c.get('saldo_pendiente', 0) for c in cxc_lista)
+            self._add_alert_header(
+                "🟠", f"CUENTAS POR COBRAR VENCIDAS — {len(cxc_lista)} (${total_cxc:.2f})",
+                COLORS.get("warning", "#FF9800"), nav_key="cobros")
+            for c in cxc_lista:
+                self._add_alert_item(
+                    f"{c.get('cliente_nombre', '?')}: ${c.get('saldo_pendiente', 0):.2f}  "
+                    f"(vence: {c.get('fecha_vencimiento', '?')})",
+                    "#E65100")
+            self._add_separator()
+
+        # 4. CxP vencidas — TODAS con proveedor y monto
+        cxp_lista = d.get("detalle_cxp_vencidas", [])
+        if cxp_lista:
+            has_alerts = True
+            total_cxp = sum(c.get('saldo_pendiente', 0) for c in cxp_lista)
+            self._add_alert_header(
+                "🔴", f"CUENTAS POR PAGAR VENCIDAS — {len(cxp_lista)} (${total_cxp:.2f})",
+                COLORS.get("danger", "#E53935"), nav_key="pagos")
+            for c in cxp_lista:
+                self._add_alert_item(
+                    f"{c.get('proveedor_nombre', '?')}: ${c.get('saldo_pendiente', 0):.2f}  "
+                    f"(vence: {c.get('fecha_vencimiento', '?')})",
+                    COLORS.get("danger", "#E53935"))
+
+        if not has_alerts:
+            ctk.CTkLabel(self.alert_scroll, text="✅ Sin alertas pendientes",
+                          font=("Segoe UI", 13), text_color=COLORS.get("success", "#43A047"),
+                          anchor="w").pack(fill="x", padx=8, pady=20)
 
         # Top vendidos
         try:
